@@ -15,6 +15,8 @@
 
 #define BACKLOG 10
 
+#define MAXDATASIZE 100 // max number of bytes we can get at once 
+
 void *get_in_addr(struct sockaddr *sa)
 {
     if (sa->sa_family == AF_INET) {
@@ -36,7 +38,30 @@ void commands(int socket)
 
 void menu(int socket)
 {
+}
 
+void receive_msg(int socket, char *msg){
+    int status = recv(socket, msg, MAXDATASIZE - 1, 0);
+    if (status == -1){
+        perror("Error receiving message");
+        return;
+    }
+    msg[status] = '\0';
+    printf("Message received: %s\n", msg);
+    return;
+}
+
+void send_msg(int socket, char *msg){
+    if (strlen(msg) > MAXDATASIZE - 1){
+        perror("Message not supported: length is bigger than the maximum allowed");
+        return;
+    }
+    int status = send(socket, msg, strlen(msg), 0);
+    if (status == -1){
+        perror("Error sending message");
+        return;
+    }
+    return;
 }
 
 int main(void)
