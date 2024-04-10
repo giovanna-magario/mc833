@@ -24,6 +24,21 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+void add_song(int socket, char message)
+{
+    
+}
+
+void commands(int socket)
+{
+    printf("Opções de comandos para músicas:\n1: cadastrar nova música\n2: remover uma música\n3: listar músicas por ano\n4: listar músicas por idioma e ano\n5: listar músicas por tipo\n6: detalhes da música\n7: detalhes de todas as músicas\nc: ver lista de comandos");
+}
+
+void menu(int socket)
+{
+
+}
+
 int main(void)
 {
     int sockfd, new_fd, st;
@@ -39,7 +54,7 @@ int main(void)
     hints.ai_flags = AI_PASSIVE;
 
     if ((st = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(st));
         return 1;
     }
 
@@ -94,7 +109,7 @@ int main(void)
 
         if (!fork()) {
             close(sockfd);
-            //function of menu
+            menu(new_fd);
             close(new_fd);
             exit(0);
         }
