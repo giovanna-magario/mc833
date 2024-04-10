@@ -28,6 +28,36 @@ void *get_in_addr(struct sockaddr *sa)
 
 void add_song(int socket, char message)
 {
+
+}
+
+void remove_song(int socket, char message)
+{
+
+}
+
+void song_by_year(int socket, char message)
+{
+
+}
+
+void song_by_language(int socket, char message)
+{
+
+}
+
+void song_by_type(int socket, char message)
+{
+
+}
+
+void song_details(int socket, char message)
+{
+
+}
+
+void list_all_songs(int socket, char message)
+{
     
 }
 
