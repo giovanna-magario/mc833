@@ -180,7 +180,52 @@ void song_details(int socket, char message)
 
 void list_all_songs(int socket, char message)
 {
-    
+    char allSongs[MAXDATASIZE];
+    // Abrir o arquivo data.json para leitura
+    FILE *fp = fopen("data/data.json", "r");
+    if (fp == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Ler o conteúdo do arquivo em uma string
+    char json_buffer[1024];
+    size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
+    fclose(fp);
+
+    // Analisar a string JSON
+    cJSON *json = cJSON_Parse(json_buffer);
+    if (json == NULL) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+        }
+        return;
+    }
+
+    // Acessar o array 'data'
+    cJSON *data_array = cJSON_GetObjectItem(json, "data");
+    if (!cJSON_IsArray(data_array)) {
+        cJSON_Delete(json);
+        fprintf(stderr, "Error: 'data' is not an array\n");
+        return;
+    }
+
+    for (int i = 0; i < cJSON_GetArraySize(data_array); i++) {
+        cJSON *item = cJSON_GetArrayItem(data_array, i);
+        if (item) {
+            char *printable = cJSON_Print(item);
+            strcat(allSongs, printable);
+            free(printable);
+            strcat(allSongs, '\n');
+        }
+    }
+
+    // Liberar a memória alocada para o objeto JSON
+    cJSON_Delete(json);
+    send_msg(socket, allSongs);
+    free(allSongs);
+    return;
 }
 
 void commands(int socket)
@@ -206,7 +251,10 @@ void menu(int socket)
             printf("Nova música cadastrada!\n");
             send_msg(socket, "Nova música cadastrada!\n");
             break;
-        
+        case '2':
+            printf("Listar todas as informações de todas as músicas\n");
+            list_all_songs(socket);
+            break;
         default:
             printf("Comando inválido");
         }
