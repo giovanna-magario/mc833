@@ -7,30 +7,6 @@
 			"tipo":	"Clássica",
 			"ref":	"Não possui",
 			"ano":	1723
-		}, {
-			"id":	2,
-			"titulo":	"nome",
-			"artista":	"a",
-			"idioma":	"a",
-			"tipo":	"a",
-			"ref":	"a",
-			"ano":	0
-		}, {
-			"id":	2,
-			"titulo":	"titulo",
-			"artista":	"artista",
-			"idioma":	"idioma",
-			"tipo":	"tipo",
-			"ref":	"refrão",
-			"ano":	1925
-		}, {
-			"id":	2,
-			"titulo":	"titulo2",
-			"artista":	"art",
-			"idioma":	"idi",
-			"tipo":	"tip",
-			"ref":	"ref",
-			"ano":	2
 		}],
 	"index":	2
 }

@@ -135,7 +135,9 @@ void add_song(int socket)
     cJSON_AddNumberToObject(new_song_json, "ano", ano);
 
     // Incrementar o valor de 'index' no JSON
-    index_value->valueint++; 
+    index_value->valueint++;
+
+    cJSON_SetIntValue(index_value, id + 1); 
 
     // Escrever o JSON atualizado de volta no arquivo
     fp = fopen("data/data.json", "w");
@@ -178,7 +180,7 @@ void song_details(int socket, char message)
 
 }
 
-void list_all_songs(int socket, char message)
+void list_all_songs(int socket)
 {
     char allSongs[MAXDATASIZE];
     // Abrir o arquivo data.json para leitura
@@ -216,7 +218,7 @@ void list_all_songs(int socket, char message)
     char *propertiesPrintable[] = {"Titulo: ", "Artista: ", "Idioma: ", "Tipo: ", "Refrão: ", "Ano: "};
 
     // Obtendo o tamanho do array
-    int size = sizeof(strings) / sizeof(strings[0]);
+    int size = sizeof(properties) / sizeof(properties[0]);
 
     strcat(allSongs, "Músicas: \n");
 
@@ -229,7 +231,7 @@ void list_all_songs(int socket, char message)
                     strcat(allSongs, propertiesPrintable[j]); 
                     strcat(allSongs, prop->valuestring); 
                 } 
-                strcat(allSongs, '\n');
+                strcat(allSongs, "\n");
             }
         }
     }
