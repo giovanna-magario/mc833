@@ -211,13 +211,26 @@ void list_all_songs(int socket, char message)
         return;
     }
 
+    // Definindo um array de strings
+    char *properties[] = {"titulo", "artista", "idioma", "tipo", "ref", "ano"};
+    char *propertiesPrintable[] = {"Titulo: ", "Artista: ", "Idioma: ", "Tipo: ", "Refrão: ", "Ano: "};
+
+    // Obtendo o tamanho do array
+    int size = sizeof(strings) / sizeof(strings[0]);
+
+    strcat(allSongs, "Músicas: \n");
+
     for (int i = 0; i < cJSON_GetArraySize(data_array); i++) {
         cJSON *item = cJSON_GetArrayItem(data_array, i);
         if (item) {
-            char *printable = cJSON_Print(item);
-            strcat(allSongs, printable);
-            free(printable);
-            strcat(allSongs, '\n');
+            for (int j = 0; j < size; j++) {
+                cJSON *prop = cJSON_GetObjectItemCaseSensitive(item, properties[j]); 
+                if (cJSON_IsString(prop) && (prop->valuestring != NULL)) {
+                    strcat(allSongs, propertiesPrintable[j]); 
+                    strcat(allSongs, prop->valuestring); 
+                } 
+                strcat(allSongs, '\n');
+            }
         }
     }
 
