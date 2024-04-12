@@ -12,7 +12,51 @@
 
 #define PORT "3490" // the port client will be connecting to 
 
-#define MAXDATASIZE 10000 // max number of bytes we can get at once 
+#define MAXDATASIZE 100 // max number of bytes we can get at once
+
+void receive_msg(int socket, char *msg){
+    int status = recv(socket, msg, MAXDATASIZE - 1, 0);
+    if (status == -1){
+        perror("Error receiving message");
+        return;
+    }
+    msg[status] = '\0';
+    printf("Message received: %s\n", msg);
+    return;
+}
+
+void send_msg(int socket, char *msg){
+    if (strlen(msg) > MAXDATASIZE - 1){
+        perror("Message not supported: length is bigger than the maximum allowed");
+        return;
+    }
+    int status = send(socket, msg, strlen(msg), 0);
+    if (status == -1){
+        perror("Error sending message");
+        return;
+    }
+    return;
+}
+
+void send_to_server(int socket)
+{
+    char msg[MAXDATASIZE];
+    
+    receive_msg(socket, msg);
+
+    while (1)
+    {
+        printf("Aguardando Input...\n");
+        scanf(" %[^\n]", msg);
+        if(!strlen(msg)){
+            exit(1);
+        }
+        send_msg(socket, msg);
+        receive_msg(socket, msg);
+    }
+    return;
+}
+
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
