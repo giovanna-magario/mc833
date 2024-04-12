@@ -76,7 +76,7 @@ void add_song(int socket)
     receive_msg(socket, buffer);
     sscanf(buffer, "%49[^\n]", tipo);
 
-    send_msg(socket, "Informe a referência da música: ");
+    send_msg(socket, "Informe a refrão da música: ");
     receive_msg(socket, buffer);
     sscanf(buffer, "%99[^\n]", ref);
 
@@ -148,9 +148,9 @@ void add_song(int socket)
     fputs(json_string, fp);
     fclose(fp);
     free(json_string);
-
     // Liberar a memória alocada para o objeto JSON
     cJSON_Delete(json);
+    return;
 }
 
 void remove_song(int socket, char message)
@@ -204,6 +204,7 @@ void menu(int socket)
             printf("Cadastrar nova música\n");
             add_song(socket);
             printf("Nova música cadastrada!\n");
+            send_msg(socket, "Nova música cadastrada!\n");
             break;
         
         default:
