@@ -9,28 +9,28 @@
 			"ano":	1723
 		}, {
 			"id":	2,
-			"titulo":	"2",
-			"artista":	"-",
-			"idioma":	"Italiano",
-			"tipo":	"Clássica",
+			"titulo":	"Idol",
+			"artista":	"Superare",
+			"idioma":	"Inglês",
+			"tipo":	"Pop",
 			"ref":	"Não possui",
-			"ano":	1723
+			"ano":	2024
 		}, {
 			"id":	3,
-			"titulo":	"3",
-			"artista":	"-",
+			"titulo":	"Maybe Thursday",
+			"artista":	"Derek Clegg",
 			"idioma":	"Inglês",
-			"tipo":	"Rock",
+			"tipo":	"Country",
 			"ref":	"Não possui",
-			"ano":	1723
+			"ano":	2024
 		}, {
 			"id":	4,
-			"titulo":	"4",
-			"artista":	"-",
-			"idioma":	"Italiano",
-			"tipo":	"Rock",
+			"titulo":	"Toada de Reis",
+			"artista":	"Mestre Manelim",
+			"idioma":	"Português",
+			"tipo":	"Country",
 			"ref":	"Não possui",
-			"ano":	2015
+			"ano":	2024
 		}, {
 			"id":	5,
 			"titulo":	"5",

@@ -46,6 +46,9 @@ void send_to_server(int socket)
 
     while (1)
     {
+        if (strcmp(msg, "Serviço encerrado\n") == 0){
+            exit(1);
+        }
         printf("Aguardando Input...\n");
         scanf(" %[^\n]", msg);
         if(!strlen(msg)){

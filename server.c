@@ -54,7 +54,7 @@ void send_msg(int socket, char *msg){
 void generateAllInfo(cJSON *dataArray, char* allSongs) {
     // Definindo um array de strings
     char *properties[] = {"id", "titulo", "artista", "idioma", "tipo", "ref", "ano"};
-    char *propertiesPrintable[] = {"Identificador Único: ", "Titulo: ", "Artista: ", "Idioma: ", "Tipo: ", "Refrão: ", "Ano: "};
+    char *propertiesPrintable[] = {"Identificador Único: ", "Titulo: ", "Intérprete: ", "Idioma: ", "Tipo da música: ", "Refrão: ", "Ano de lançamento: "};
 
     // Obtendo o tamanho do array
     int size = sizeof(properties) / sizeof(properties[0]);
@@ -150,6 +150,7 @@ void add_song(int socket)
     FILE *fp = fopen("data/data.json", "r");
     if (fp == NULL) {
         perror("Error opening file");
+        send_msg(socket, "Error opening file");
         return;
     }
 
@@ -164,6 +165,9 @@ void add_song(int socket)
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
             fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+            char msg[MAXDATASIZE];
+            sprintf(msg, "Error parsing JSON: %s\n", error_ptr);
+            send_msg(socket, msg);
         }
         return;
     }
@@ -173,6 +177,7 @@ void add_song(int socket)
     if (!cJSON_IsArray(data_array)) {
         cJSON_Delete(json);
         fprintf(stderr, "Error: 'data' is not an array\n");
+        send_msg(socket, "Error: 'data' is not an array\n");
         return;
     }
 
@@ -181,6 +186,7 @@ void add_song(int socket)
     if (!cJSON_IsNumber(index_value)) {
         cJSON_Delete(json);
         fprintf(stderr, "Error: 'index' is not a number\n");
+        send_msg(socket, "Error: 'index' is not a number\n");
         return;
     }
     id = index_value->valueint; // Usar o valor de 'index' como 'id'
@@ -205,6 +211,7 @@ void add_song(int socket)
     fp = fopen("data/data.json", "w");
     if (fp == NULL) {
         perror("Error opening file");
+        send_msg(socket, "Error opening file");
         cJSON_Delete(json);
         return;
     }
@@ -235,6 +242,7 @@ void remove_song(int socket)
     FILE *fp = fopen("data/data.json", "r");
     if (fp == NULL) {
         perror("Error opening file");
+        send_msg(socket, "Error opening file");
         return;
     }
 
@@ -249,6 +257,9 @@ void remove_song(int socket)
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
             fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+            char msg[MAXDATASIZE];
+            sprintf(msg, "Error parsing JSON: %s\n", error_ptr);
+            send_msg(socket, msg);
         }
         return;
     }
@@ -258,6 +269,7 @@ void remove_song(int socket)
     if (!cJSON_IsArray(data_array)) {
         cJSON_Delete(json);
         fprintf(stderr, "Error: 'data' is not an array\n");
+        send_msg(socket, "Error: 'data' is not an array\n");
         return;
     }
 
@@ -275,6 +287,9 @@ void remove_song(int socket)
 
     if (removed_song == NULL) {
         fprintf(stderr, "Error: Song with ID %d not found\n", id);
+        char msg[MAXDATASIZE];
+        sprintf(msg, "Error: Song with ID %d not found\n", id);
+        send_msg(socket, msg);
         cJSON_Delete(json);
         return;
     }
@@ -283,6 +298,7 @@ void remove_song(int socket)
     fp = fopen("data/data.json", "w");
     if (fp == NULL) {
         perror("Error opening file");
+        send_msg(socket, "Error opening file");
         cJSON_Delete(json);
         cJSON_Delete(removed_song);
         return;
@@ -314,6 +330,7 @@ void song_by_year(int socket)
     FILE *fp = fopen("data/data.json", "r");
     if (fp == NULL) {
         perror("Error opening file");
+        send_msg(socket, "Error opening file");
         return;
     }
 
@@ -328,6 +345,9 @@ void song_by_year(int socket)
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
             fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+            char msg[MAXDATASIZE];
+            sprintf(msg, "Error parsing JSON: %s\n", error_ptr);
+            send_msg(socket, msg);
         }
         return;
     }
@@ -337,6 +357,7 @@ void song_by_year(int socket)
     if (!cJSON_IsArray(data_array)) {
         cJSON_Delete(json);
         fprintf(stderr, "Error: 'data' is not an array\n");
+        send_msg(socket, "Error: 'data' is not an array\n");
         return;
     }
 
@@ -380,6 +401,7 @@ void song_by_language(int socket)
     FILE *fp = fopen("data/data.json", "r");
     if (fp == NULL) {
         perror("Error opening file");
+        send_msg(socket, "Error opening file");
         return;
     }
 
@@ -394,6 +416,9 @@ void song_by_language(int socket)
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
             fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+            char msg[MAXDATASIZE];
+            sprintf(msg, "Error parsing JSON: %s\n", error_ptr);
+            send_msg(socket, msg);
         }
         return;
     }
@@ -403,6 +428,7 @@ void song_by_language(int socket)
     if (!cJSON_IsArray(data_array)) {
         cJSON_Delete(json);
         fprintf(stderr, "Error: 'data' is not an array\n");
+        send_msg(socket, "Error: 'data' is not an array\n");
         return;
     }
 
@@ -445,6 +471,7 @@ void song_by_type(int socket)
     FILE *fp = fopen("data/data.json", "r");
     if (fp == NULL) {
         perror("Error opening file");
+        send_msg(socket, "Error opening file");
         return;
     }
 
@@ -459,6 +486,9 @@ void song_by_type(int socket)
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
             fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+            char msg[MAXDATASIZE];
+            sprintf(msg, "Error parsing JSON: %s\n", error_ptr);
+            send_msg(socket, msg);
         }
         return;
     }
@@ -468,6 +498,7 @@ void song_by_type(int socket)
     if (!cJSON_IsArray(data_array)) {
         cJSON_Delete(json);
         fprintf(stderr, "Error: 'data' is not an array\n");
+        send_msg(socket, "Error: 'data' is not an array\n");
         return;
     }
 
@@ -511,6 +542,7 @@ void song_details(int socket)
     FILE *fp = fopen("data/data.json", "r");
     if (fp == NULL) {
         perror("Error opening file");
+        send_msg(socket, "Error opening file");
         return;
     }
 
@@ -525,6 +557,9 @@ void song_details(int socket)
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
             fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+            char msg[MAXDATASIZE];
+            sprintf(msg, "Error parsing JSON: %s\n", error_ptr);
+            send_msg(socket, msg);
         }
         return;
     }
@@ -534,6 +569,7 @@ void song_details(int socket)
     if (!cJSON_IsArray(data_array)) {
         cJSON_Delete(json);
         fprintf(stderr, "Error: 'data' is not an array\n");
+        send_msg(socket, "Error: 'data' is not an array\n");
         return;
     }
 
@@ -553,8 +589,11 @@ void song_details(int socket)
         }
     }
 
-    if (cJSON_GetArraySize(data_array) == 0) {
+    if (cJSON_GetArraySize(filtered_array) == 0) {
         fprintf(stderr, "Error: Song with ID %d not found\n", id);
+        char msg[MAXDATASIZE];
+        sprintf(msg, "Error: Song with ID %d not found\n", id);
+        send_msg(socket, msg);
         cJSON_Delete(json);
         return;
     }
@@ -574,6 +613,7 @@ void list_all_songs(int socket)
     FILE *fp = fopen("data/data.json", "r");
     if (fp == NULL) {
         perror("Error opening file");
+        send_msg(socket, "Error opening file");
         return;
     }
 
@@ -588,6 +628,9 @@ void list_all_songs(int socket)
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
             fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+            char msg[MAXDATASIZE];
+            sprintf(msg, "Error parsing JSON: %s\n", error_ptr);
+            send_msg(socket, msg);
         }
         return;
     }
@@ -597,6 +640,7 @@ void list_all_songs(int socket)
     if (!cJSON_IsArray(data_array)) {
         cJSON_Delete(json);
         fprintf(stderr, "Error: 'data' is not an array\n");
+        send_msg(socket, "Error: 'data' is not an array\n");
         return;
     }
     memset(allSongs, 0, sizeof(allSongs));
@@ -657,9 +701,11 @@ void menu(int socket)
             commands(socket);
             break;
         case 's':
+            send_msg(socket, "Serviço encerrado\n");
             break;
         default:
-            printf("Comando inválido");
+            printf("Comando inválido\n");
+            send_msg(socket, "Comando inválido\n");
         }
     }
     return;
