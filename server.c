@@ -51,6 +51,60 @@ void send_msg(int socket, char *msg){
     return;
 }
 
+char *generateAllInfo(cJSON *dataArray) {
+    char allSongs[MAXDATASIZE];
+    // Definindo um array de strings
+    char *properties[] = {"titulo", "artista", "idioma", "tipo", "ref", "ano"};
+    char *propertiesPrintable[] = {"Titulo: ", "Artista: ", "Idioma: ", "Tipo: ", "Refrão: ", "Ano: "};
+
+    // Obtendo o tamanho do array
+    int size = sizeof(properties) / sizeof(properties[0]);
+
+    strcat(allSongs, "Músicas: \n");
+
+    for (int i = 0; i < cJSON_GetArraySize(data_array); i++) {
+        cJSON *item = cJSON_GetArrayItem(data_array, i);
+        if (item) {
+            for (int j = 0; j < size; j++) {
+                cJSON *prop = cJSON_GetObjectItemCaseSensitive(item, properties[j]); 
+                if (cJSON_IsString(prop) && (prop->valuestring != NULL)) {
+                    strcat(allSongs, propertiesPrintable[j]); 
+                    strcat(allSongs, prop->valuestring); 
+                } 
+                strcat(allSongs, "\n");
+            }
+        }
+    }
+    return allSongs;
+}
+
+char *generateSongsStr(cJSON *filteredSongsArray) {
+    char allSongs[MAXDATASIZE];
+    // Definindo um array de strings
+    char *properties[] = {"id", "titulo", "artista"};
+    char *propertiesPrintable[] = {"Identificador Único: ", "Titulo: ", "Intérprete: "};
+
+    // Obtendo o tamanho do array
+    int size = sizeof(properties) / sizeof(properties[0]);
+
+    strcat(allSongs, "Músicas: \n");
+
+    for (int i = 0; i < cJSON_GetArraySize(filteredSongsArray); i++) {
+        cJSON *item = cJSON_GetArrayItem(filteredSongsArray, i);
+        if (item) {
+            for (int j = 0; j < size; j++) {
+                cJSON *prop = cJSON_GetObjectItemCaseSensitive(item, properties[j]); 
+                if (cJSON_IsString(prop) && (prop->valuestring != NULL)) {
+                    strcat(allSongs, propertiesPrintable[j]); 
+                    strcat(allSongs, prop->valuestring); 
+                } 
+                strcat(allSongs, "\n");
+            }
+        }
+    }
+    return allSongs;
+}
+
 void add_song(int socket)
 {
     char buffer[MAXDATASIZE];
@@ -240,27 +294,14 @@ void remove_song(int socket)
 
 void song_by_year(int socket, char message)
 {
+    int ano;
+    char buffer[MAXDATASIZE];
 
-}
+    // Solicitar cada dado ao cliente individualmente
+    send_msg(socket, "Informe o ano de lançamento das músicas que você quer buscar: ");
+    receive_msg(socket, buffer);
+    sscanf(buffer, "%d", &ano);
 
-void song_by_language(int socket, char message)
-{
-
-}
-
-void song_by_type(int socket, char message)
-{
-
-}
-
-void song_details(int socket, char message)
-{
-
-}
-
-void list_all_songs(int socket)
-{
-    char allSongs[MAXDATASIZE];
     // Abrir o arquivo data.json para leitura
     FILE *fp = fopen("data/data.json", "r");
     if (fp == NULL) {
@@ -291,29 +332,267 @@ void list_all_songs(int socket)
         return;
     }
 
-    // Definindo um array de strings
-    char *properties[] = {"titulo", "artista", "idioma", "tipo", "ref", "ano"};
-    char *propertiesPrintable[] = {"Titulo: ", "Artista: ", "Idioma: ", "Tipo: ", "Refrão: ", "Ano: "};
+    cJSON *filtered_array = cJSON_CreateArray();
 
-    // Obtendo o tamanho do array
-    int size = sizeof(properties) / sizeof(properties[0]);
+    // Itere pelos elementos do array
+    cJSON *item;
+    cJSON_ArrayForEach(item, data_array) {
+        // Verifique se o objeto possui uma propriedade "tipo"
+        cJSON *ano_item = cJSON_GetObjectItem(item, "ano");
+        if (ano_item && cJSON_IsString(ano_item)) {
+            // Verifique se o valor da propriedade "tipo" é o valor desejado
+            if (strcmp(ano_item->valuestring, ano) == 0) {
+                // Adicione o objeto ao array filtrado
+                cJSON_AddItemToArray(filtered_array, cJSON_Duplicate(item, 1));
+            }
+        }
+    }
+    char *filteredSongs = generateSongsStr(filtered_array);
+    // Liberar a memória alocada para o objeto JSON
+    cJSON_Delete(json);
+    send_msg(socket, filteredSongs);
+    free(filteredSongs);
+    return;
+}
 
-    strcat(allSongs, "Músicas: \n");
+void song_by_language(int socket, char message)
+{
+    int ano;
+    char buffer[MAXDATASIZE], idioma[MAXDATASIZE];
 
-    for (int i = 0; i < cJSON_GetArraySize(data_array); i++) {
-        cJSON *item = cJSON_GetArrayItem(data_array, i);
-        if (item) {
-            for (int j = 0; j < size; j++) {
-                cJSON *prop = cJSON_GetObjectItemCaseSensitive(item, properties[j]); 
-                if (cJSON_IsString(prop) && (prop->valuestring != NULL)) {
-                    strcat(allSongs, propertiesPrintable[j]); 
-                    strcat(allSongs, prop->valuestring); 
-                } 
-                strcat(allSongs, "\n");
+    // Solicitar cada dado ao cliente individualmente
+    send_msg(socket, "Informe o ano de lançamento das músicas que você quer buscar: ");
+    receive_msg(socket, buffer);
+    sscanf(buffer, "%d", &ano);
+    send_msg(socket, "Informe o idioma das músicas que você quer buscar: ");
+    receive_msg(socket, buffer);
+    sscanf(buffer, "%99[^\n]", idioma);
+
+    // Abrir o arquivo data.json para leitura
+    FILE *fp = fopen("data/data.json", "r");
+    if (fp == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Ler o conteúdo do arquivo em uma string
+    char json_buffer[1024];
+    size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
+    fclose(fp);
+
+    // Analisar a string JSON
+    cJSON *json = cJSON_Parse(json_buffer);
+    if (json == NULL) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+        }
+        return;
+    }
+
+    // Acessar o array 'data'
+    cJSON *data_array = cJSON_GetObjectItem(json, "data");
+    if (!cJSON_IsArray(data_array)) {
+        cJSON_Delete(json);
+        fprintf(stderr, "Error: 'data' is not an array\n");
+        return;
+    }
+
+    cJSON *filtered_array = cJSON_CreateArray();
+
+    // Itere pelos elementos do array
+    cJSON *item;
+    cJSON_ArrayForEach(item, data_array) {
+        // Verifique se o objeto possui uma propriedade "tipo"
+        cJSON *ano_item = cJSON_GetObjectItem(item, "ano");
+        cJSON *idioma_item = cJSON_GetObjectItem(item, "idioma");
+        if (ano_item && cJSON_IsString(ano_item) && idioma_item && cJSON_IsString(idioma_item)) {
+            // Verifique se o valor da propriedade "tipo" é o valor desejado
+            if (strcmp(ano_item->valuestring, ano) == 0) {
+                if (strcmp(idioma_item->valuestring, idioma) == 0) {
+                    // Adicione o objeto ao array filtrado
+                    cJSON_AddItemToArray(filtered_array, cJSON_Duplicate(item, 1));
+                }
+            }
+        }
+    }
+    char *filteredSongs = generateSongsStr(filtered_array);
+    // Liberar a memória alocada para o objeto JSON
+    cJSON_Delete(json);
+    send_msg(socket, filteredSongs);
+    free(filteredSongs);
+    return;
+}
+
+void song_by_type(int socket, char message)
+{
+    char buffer[MAXDATASIZE], tipo[MAXDATASIZE];
+
+    // Solicitar cada dado ao cliente individualmente
+    send_msg(socket, "Informe o tipo das músicas que você quer buscar: ");
+    receive_msg(socket, buffer);
+    sscanf(buffer, "%99[^\n]", tipo);
+
+    // Abrir o arquivo data.json para leitura
+    FILE *fp = fopen("data/data.json", "r");
+    if (fp == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Ler o conteúdo do arquivo em uma string
+    char json_buffer[1024];
+    size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
+    fclose(fp);
+
+    // Analisar a string JSON
+    cJSON *json = cJSON_Parse(json_buffer);
+    if (json == NULL) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+        }
+        return;
+    }
+
+    // Acessar o array 'data'
+    cJSON *data_array = cJSON_GetObjectItem(json, "data");
+    if (!cJSON_IsArray(data_array)) {
+        cJSON_Delete(json);
+        fprintf(stderr, "Error: 'data' is not an array\n");
+        return;
+    }
+
+    cJSON *filtered_array = cJSON_CreateArray();
+
+    // Itere pelos elementos do array
+    cJSON *item;
+    cJSON_ArrayForEach(item, data_array) {
+        // Verifique se o objeto possui uma propriedade "tipo"
+        cJSON *tipo_item = cJSON_GetObjectItem(item, "tipo");
+        if (tipo_item && cJSON_IsString(tipo_item)) {
+            // Verifique se o valor da propriedade "tipo" é o valor desejado
+            if (strcmp(tipo_item->valuestring, tipo) == 0) {
+                // Adicione o objeto ao array filtrado
+                cJSON_AddItemToArray(filtered_array, cJSON_Duplicate(item, 1));
+            }
+        }
+    }
+    char *filteredSongs = generateSongsStr(filtered_array);
+    // Liberar a memória alocada para o objeto JSON
+    cJSON_Delete(json);
+    send_msg(socket, filteredSongs);
+    free(filteredSongs);
+    return;
+}
+
+void song_details(int socket, char message)
+{
+    char buffer[MAXDATASIZE];
+
+    // Variáveis para armazenar os dados da nova música
+    int id;
+
+    // Solicitar cada dado ao cliente individualmente
+    send_msg(socket, "Informe o id da música: \n");
+    receive_msg(socket, buffer);
+    sscanf(buffer, "%d", &id);
+
+    // Abrir o arquivo data.json para leitura
+    FILE *fp = fopen("data/data.json", "r");
+    if (fp == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Ler o conteúdo do arquivo em uma string
+    char json_buffer[1024];
+    size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
+    fclose(fp);
+
+    // Analisar a string JSON
+    cJSON *json = cJSON_Parse(json_buffer);
+    if (json == NULL) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+        }
+        return;
+    }
+
+    // Acessar o array 'data'
+    cJSON *data_array = cJSON_GetObjectItem(json, "data");
+    if (!cJSON_IsArray(data_array)) {
+        cJSON_Delete(json);
+        fprintf(stderr, "Error: 'data' is not an array\n");
+        return;
+    }
+
+    // Procurar a música com o ID especificado e removê-la do array
+    cJSON *filtered_array = cJSON_CreateArray();
+    // Itere pelos elementos do array
+    cJSON *item;
+    cJSON_ArrayForEach(item, data_array) {
+        // Verifique se o objeto possui uma propriedade "tipo"
+        cJSON *song_id = cJSON_GetObjectItem(item, "id");
+        if (song_id && cJSON_IsString(id)) {
+            // Verifique se o valor da propriedade "tipo" é o valor desejado
+            if (strcmp(song_id->valuestring, id) == 0) {
+                // Adicione o objeto ao array filtrado
+                cJSON_AddItemToArray(filtered_array, cJSON_Duplicate(item, 1));
             }
         }
     }
 
+    if (cJSON_GetArraySize(data_array) == 0) {
+        fprintf(stderr, "Error: Song with ID %d not found\n", id);
+        cJSON_Delete(json);
+        return;
+    }
+    
+    char *filteredSongs = generateAllInfo(filtered_array);
+
+    // Liberar a memória alocada para os objetos JSON
+    cJSON_Delete(json);
+    send_msg(socket,filteredSongs);
+    free(filteredSongs);
+    return;
+}
+
+void list_all_songs(int socket)
+{
+    // Abrir o arquivo data.json para leitura
+    FILE *fp = fopen("data/data.json", "r");
+    if (fp == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Ler o conteúdo do arquivo em uma string
+    char json_buffer[1024];
+    size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
+    fclose(fp);
+
+    // Analisar a string JSON
+    cJSON *json = cJSON_Parse(json_buffer);
+    if (json == NULL) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+        }
+        return;
+    }
+
+    // Acessar o array 'data'
+    cJSON *data_array = cJSON_GetObjectItem(json, "data");
+    if (!cJSON_IsArray(data_array)) {
+        cJSON_Delete(json);
+        fprintf(stderr, "Error: 'data' is not an array\n");
+        return;
+    }
+
+    char *allSongs = generateAllInfo(filtered_array);
+    
     // Liberar a memória alocada para o objeto JSON
     cJSON_Delete(json);
     send_msg(socket, allSongs);
@@ -345,6 +624,22 @@ void menu(int socket)
         case '2':
             printf("Deletar uma música\n");
             remove_song(socket);
+            break;
+        case '3':
+            printf("Listar todas as músicas (identificador, título e intérprete) lançadas em um determinado ano\n");
+            song_by_year(socket);
+            break;
+        case '4':
+            printf("Listar todas as músicas (identificador, título e intérprete) em um dado idioma lançadas num certo ano\n");
+            song_by_language(socket);
+            break;
+        case '5':
+            printf("Listar todas as músicas (identificador, título e intérprete) de um certo tipo\n");
+            song_by_type(socket);
+            break;
+        case '6':
+            printf("Listar todas as informações de uma música dado o seu identificador\n");
+            song_details(socket);
             break;
         case '7':
             printf("Listar todas as informações de todas as músicas\n");
