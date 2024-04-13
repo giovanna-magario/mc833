@@ -60,27 +60,27 @@ void add_song(int socket)
     char titulo[100], artista[100], idioma[50], tipo[50], ref[100];
 
     // Solicitar cada dado ao cliente individualmente
-    send_msg(socket, "Informe o título da música: ");
+    send_msg(socket, "Informe o título da música: \n");
     receive_msg(socket, buffer);
     sscanf(buffer, "%99[^\n]", titulo);
 
-    send_msg(socket, "Informe o artista da música: ");
+    send_msg(socket, "Informe o artista da música: \n");
     receive_msg(socket, buffer);
     sscanf(buffer, "%99[^\n]", artista);
 
-    send_msg(socket, "Informe o idioma da música: ");
+    send_msg(socket, "Informe o idioma da música: \n");
     receive_msg(socket, buffer);
     sscanf(buffer, "%49[^\n]", idioma);
 
-    send_msg(socket, "Informe o tipo da música: ");
+    send_msg(socket, "Informe o tipo da música: \n");
     receive_msg(socket, buffer);
     sscanf(buffer, "%49[^\n]", tipo);
 
-    send_msg(socket, "Informe a refrão da música: ");
+    send_msg(socket, "Informe a refrão da música: \n");
     receive_msg(socket, buffer);
     sscanf(buffer, "%99[^\n]", ref);
 
-    send_msg(socket, "Informe o ano da música: ");
+    send_msg(socket, "Informe o ano da música: \n");
     receive_msg(socket, buffer);
     sscanf(buffer, "%d", &ano);
 
@@ -152,12 +152,90 @@ void add_song(int socket)
     free(json_string);
     // Liberar a memória alocada para o objeto JSON
     cJSON_Delete(json);
+    printf("Nova música cadastrada!\n");
+    send_msg(socket, "Nova música cadastrada!\n");
     return;
 }
 
-void remove_song(int socket, char message)
+void remove_song(int socket)
 {
+    char buffer[MAXDATASIZE];
 
+    // Variáveis para armazenar os dados da nova música
+    int id;
+
+    // Solicitar cada dado ao cliente individualmente
+    send_msg(socket, "Informe o id da música: \n");
+    receive_msg(socket, buffer);
+    sscanf(buffer, "%d", &id);
+
+    // Abrir o arquivo data.json para leitura
+    FILE *fp = fopen("data/data.json", "r");
+    if (fp == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Ler o conteúdo do arquivo em uma string
+    char json_buffer[1024];
+    size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
+    fclose(fp);
+
+    // Analisar a string JSON
+    cJSON *json = cJSON_Parse(json_buffer);
+    if (json == NULL) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            fprintf(stderr, "Error parsing JSON: %s\n", error_ptr);
+        }
+        return;
+    }
+
+    // Acessar o array 'data'
+    cJSON *data_array = cJSON_GetObjectItem(json, "data");
+    if (!cJSON_IsArray(data_array)) {
+        cJSON_Delete(json);
+        fprintf(stderr, "Error: 'data' is not an array\n");
+        return;
+    }
+
+    // Procurar a música com o ID especificado e removê-la do array
+    int array_size = cJSON_GetArraySize(data_array);
+    cJSON *removed_song = NULL;
+    for (int i = 0; i < array_size; ++i) {
+        cJSON *song = cJSON_GetArrayItem(data_array, i);
+        cJSON *song_id = cJSON_GetObjectItem(song, "id");
+        if (cJSON_IsNumber(song_id) && song_id->valueint == id) {
+            removed_song = cJSON_DetachItemFromArray(data_array, i);
+            break;
+        }
+    }
+
+    if (removed_song == NULL) {
+        fprintf(stderr, "Error: Song with ID %d not found\n", id);
+        cJSON_Delete(json);
+        return;
+    }
+
+    // Escrever o JSON atualizado de volta no arquivo
+    fp = fopen("data/data.json", "w");
+    if (fp == NULL) {
+        perror("Error opening file");
+        cJSON_Delete(json);
+        cJSON_Delete(removed_song);
+        return;
+    }
+    char *json_string = cJSON_Print(json);
+    fputs(json_string, fp);
+    fclose(fp);
+    free(json_string);
+
+    // Liberar a memória alocada para os objetos JSON
+    cJSON_Delete(json);
+    cJSON_Delete(removed_song);
+    printf("Música deletada!\n");
+    send_msg(socket, "Música deletada!\n");
+    return;
 }
 
 void song_by_year(int socket, char message)
@@ -245,7 +323,7 @@ void list_all_songs(int socket)
 
 void commands(int socket)
 {
-    send_msg(socket, "Opções de comandos para músicas:\n1: cadastrar nova música\n2: remover uma música\n3: listar músicas por ano\n4: listar músicas por idioma e ano\n5: listar músicas por tipo\n6: detalhes da música\n7: detalhes de todas as músicas\nc: ver lista de comandos");
+    send_msg(socket, "Opções de comandos para músicas:\n1: cadastrar nova música\n2: remover uma música\n3: listar músicas por ano\n4: listar músicas por idioma e ano\n5: listar músicas por tipo\n6: detalhes da música\n7: detalhes de todas as músicas\nc: ver lista de comandos\ns: sair\n");
     return;
 }
 
@@ -263,12 +341,19 @@ void menu(int socket)
         case '1':
             printf("Cadastrar nova música\n");
             add_song(socket);
-            printf("Nova música cadastrada!\n");
-            send_msg(socket, "Nova música cadastrada!\n");
             break;
         case '2':
+            printf("Deletar uma música\n");
+            remove_song(socket);
+            break;
+        case '7':
             printf("Listar todas as informações de todas as músicas\n");
             list_all_songs(socket);
+            break;
+        case 'c':
+            commands(socket);
+            break;
+        case 's':
             break;
         default:
             printf("Comando inválido");

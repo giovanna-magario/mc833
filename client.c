@@ -21,7 +21,7 @@ void receive_msg(int socket, char *msg){
         return;
     }
     msg[status] = '\0';
-    printf("Message received: %s\n", msg);
+    printf(msg);
     return;
 }
 
