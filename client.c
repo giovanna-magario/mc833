@@ -10,9 +10,9 @@
 
 #include <arpa/inet.h>
 
-#define PORT "3490" // the port client will be connecting to 
+#define PORT "3490"
 
-#define MAXDATASIZE 10000 // max number of bytes we can get at once
+#define MAXDATASIZE 10000
 
 void receive_msg(int socket, char *msg){
     int status = recv(socket, msg, MAXDATASIZE - 1, 0);
@@ -61,7 +61,6 @@ void send_to_server(int socket)
 }
 
 
-// get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
     if (sa->sa_family == AF_INET) {
@@ -92,8 +91,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
-
-    // loop through all the results and connect to the first we can
+ 
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
@@ -119,7 +117,7 @@ int main(int argc, char *argv[])
             s, sizeof s);
     printf("client: connecting to %s\n", s);
 
-    freeaddrinfo(servinfo); // all done with this structure
+    freeaddrinfo(servinfo);
 
     send_to_server(sockfd);
 
