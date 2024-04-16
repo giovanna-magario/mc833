@@ -123,28 +123,28 @@ void add_song(int socket)
 
     // Variáveis para armazenar os dados da nova música
     int id, ano;
-    char titulo[100], artista[100], idioma[50], tipo[50], ref[100];
+    char titulo[MAXDATASIZE], artista[MAXDATASIZE], idioma[MAXDATASIZE], tipo[MAXDATASIZE], ref[MAXDATASIZE];
 
     // Solicitar cada dado ao cliente individualmente
     send_msg(socket, "Informe o título da música: \n");
     receive_msg(socket, buffer);
-    sscanf(buffer, "%99[^\n]", titulo);
+    sscanf(buffer, "%9999[^\n]", titulo);
 
     send_msg(socket, "Informe o artista da música: \n");
     receive_msg(socket, buffer);
-    sscanf(buffer, "%99[^\n]", artista);
+    sscanf(buffer, "%9999[^\n]", artista);
 
     send_msg(socket, "Informe o idioma da música: \n");
     receive_msg(socket, buffer);
-    sscanf(buffer, "%49[^\n]", idioma);
+    sscanf(buffer, "%9999[^\n]", idioma);
 
     send_msg(socket, "Informe o tipo da música: \n");
     receive_msg(socket, buffer);
-    sscanf(buffer, "%49[^\n]", tipo);
+    sscanf(buffer, "%9999[^\n]", tipo);
 
     send_msg(socket, "Informe a refrão da música: \n");
     receive_msg(socket, buffer);
-    sscanf(buffer, "%99[^\n]", ref);
+    sscanf(buffer, "%9999[^\n]", ref);
 
     send_msg(socket, "Informe o ano da música: \n");
     receive_msg(socket, buffer);
@@ -159,7 +159,7 @@ void add_song(int socket)
     }
 
     // Ler o conteúdo do arquivo em uma string
-    char json_buffer[1024];
+    char json_buffer[MAXDATASIZE];
     size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
     fclose(fp);
 
@@ -250,7 +250,7 @@ void remove_song(int socket)
     }
 
     // Ler o conteúdo do arquivo em uma string
-    char json_buffer[1024];
+    char json_buffer[MAXDATASIZE];
     size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
     fclose(fp);
 
@@ -339,7 +339,7 @@ void song_by_year(int socket)
     }
 
     // Ler o conteúdo do arquivo em uma string
-    char json_buffer[1024];
+    char json_buffer[MAXDATASIZE];
     size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
     fclose(fp);
 
@@ -409,7 +409,7 @@ void song_by_language(int socket)
     }
 
     // Ler o conteúdo do arquivo em uma string
-    char json_buffer[1024];
+    char json_buffer[MAXDATASIZE];
     size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
     fclose(fp);
 
@@ -478,7 +478,7 @@ void song_by_type(int socket)
     }
 
     // Ler o conteúdo do arquivo em uma string
-    char json_buffer[1024];
+    char json_buffer[MAXDATASIZE];
     size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
     fclose(fp);
 
@@ -548,7 +548,7 @@ void song_details(int socket)
     }
 
     // Ler o conteúdo do arquivo em uma string
-    char json_buffer[1024];
+    char json_buffer[MAXDATASIZE];
     size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
     fclose(fp);
 
@@ -619,7 +619,7 @@ void list_all_songs(int socket)
     }
 
     // Ler o conteúdo do arquivo em uma string
-    char json_buffer[1024];
+    char json_buffer[MAXDATASIZE];
     size_t len = fread(json_buffer, 1, sizeof(json_buffer), fp);
     fclose(fp);
 
