@@ -14,6 +14,7 @@
 
 #define MAXDATASIZE 10000
 
+// função de recebimento de mensagem
 void receive_msg(int socket, char *msg){
     int status = recv(socket, msg, MAXDATASIZE - 1, 0);
     if (status == -1){
@@ -25,6 +26,7 @@ void receive_msg(int socket, char *msg){
     return;
 }
 
+// função de envio de mensagem
 void send_msg(int socket, char *msg){
     if (strlen(msg) > MAXDATASIZE - 1){
         perror("Message not supported: length is bigger than the maximum allowed");
@@ -38,6 +40,7 @@ void send_msg(int socket, char *msg){
     return;
 }
 
+// função de requisição para o servidor
 void send_to_server(int socket)
 {
     char msg[MAXDATASIZE];

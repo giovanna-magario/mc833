@@ -27,6 +27,7 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+// função de recebimento de mensagem
 void receive_msg(int socket, char *msg){
     int status = recv(socket, msg, MAXDATASIZE - 1, 0);
     if (status == -1){
@@ -38,6 +39,7 @@ void receive_msg(int socket, char *msg){
     return;
 }
 
+// função de envio de mensagem
 void send_msg(int socket, char *msg){
     if (strlen(msg) > MAXDATASIZE - 1){
         perror("Message not supported: length is bigger than the maximum allowed");
@@ -51,6 +53,7 @@ void send_msg(int socket, char *msg){
     return;
 }
 
+// gera as informações de todos os dados em formato de string para serem mostrados no console
 void generateAllInfo(cJSON *dataArray, char* allSongs) {
     // Definindo um array de strings
     char *properties[] = {"id", "titulo", "artista", "idioma", "tipo", "ref", "ano"};
@@ -82,6 +85,7 @@ void generateAllInfo(cJSON *dataArray, char* allSongs) {
     return;
 }
 
+// gera as informações de 3 dados (id, titulo e interprete) em formato de string para serem mostrados no console
 void generateSongsStr(cJSON *filteredSongsArray, char* allSongs) {
     // Definindo um array de strings
     char *properties[] = {"id", "titulo", "artista"};
