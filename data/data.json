@@ -8,37 +8,58 @@
 			"ref":	"Não possui",
 			"ano":	1723
 		}, {
-			"id":	2,
-			"titulo":	"Idol",
-			"artista":	"Superare",
-			"idioma":	"Inglês",
-			"tipo":	"Pop",
-			"ref":	"Não possui",
-			"ano":	2024
-		}, {
-			"id":	3,
-			"titulo":	"Maybe Thursday",
-			"artista":	"Derek Clegg",
-			"idioma":	"Inglês",
-			"tipo":	"Country",
-			"ref":	"Não possui",
-			"ano":	2024
-		}, {
-			"id":	4,
-			"titulo":	"Toada de Reis",
-			"artista":	"Mestre Manelim",
-			"idioma":	"Português",
-			"tipo":	"Country",
-			"ref":	"Não possui",
-			"ano":	2024
-		}, {
-			"id":	5,
-			"titulo":	"5",
-			"artista":	"-",
-			"idioma":	"Italiano",
-			"tipo":	"Clássica",
-			"ref":	"Não possui",
-			"ano":	2015
+			"id": 2,
+			"titulo": "Ode à Alegria (Ode to Joy)",
+			"artista": "Ludwig van Beethoven",
+			"idioma": "Alemão",
+			"tipo": "Clássica (Sinfonia No. 9 em Ré Maior, Op. 125)",
+			"ref": "Freude schöner Götterfunken, Tochter aus Elysium, / Freude, die uns alle bindet, / Helden fühlen deinen Zauber, / Götter sind dir nah!",
+			"ano": 1824
+		},
+		{
+			"id": 3,
+			"titulo": "Hino à Alegria (Himno a la Alegría)",
+			"artista": "Miguel Hidalgo y Costilla (letra) / José María Mena (música)",
+			"idioma": "Espanhol",
+			"tipo": "Hino Nacional",
+			"ref": "Salvé, oh Patria!/ ¡Salvé! / Tu gloria se acrecienta / Por tu heroica defensa / Tu nombre excelsa / Entre las naciones / Resuena con honor.",
+			"ano": 1808
+		},
+		{
+			"id": 4,
+			"titulo": "Imagine",
+			"artista": "John Lennon",
+			"idioma": "Inglês",
+			"tipo": "Pop",
+			"ref": "Imagine there's no heaven / It's easy if you try / No hell below us / Above us only sky / Imagine all the people / Living for today",
+			"ano": 1971
+		},
+		{
+			"id": 5,
+			"titulo": "Les Misérables",
+			"artista": "Claude-Michel Schönberg (música) / Alain Boublil & Robert Gill (letra)",
+			"idioma": "Francês",
+			"tipo": "Musical",
+			"ref": "On est tous des misérables / Des âmes en peine, des cœurs brisés / On est tous des misérables / Mais on peut rêver d'un avenir meilleur",
+			"ano": 1980
+		},
+		{
+			"id": 6,
+			"titulo": "Bella Ciao",
+			"artista": "Diversos artistas",
+			"idioma": "Italiano",
+			"tipo": "Popular",
+			"ref": "Bella ciao, bella ciao, bella ciao, ciao ciao / Partigiano porta la croce, rossa come la rosa / Che il partigiano combatte per la libertà",
+			"ano": 1943
+		},
+		{
+			"id": 7,
+			"titulo": "Guantanamera",
+			"artista": "Pete Seeger (popularização) / Diversos artistas (origem incerta)",
+			"idioma": "Espanhol",
+			"tipo": "Cubana (Son)",
+			"ref": "Guantanamera, guantanamera / Guantanamera, salada, banana / Guantanamera, guantanamera / Yo soy tu purasangre, yo soy tu antillano",
+			"ano": 1928
 		}],
 	"index":	7
 }
