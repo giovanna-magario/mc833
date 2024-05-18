@@ -653,6 +653,45 @@ void list_all_songs(int socket)
     return;
 }
 
+
+// Função para enviar um arquivo via UDP
+void send_file_udp(int sockfd, struct sockaddr_in *addr, const char *filename) {
+    int filefd, numbytes;
+    char filebuf[MAXDATASIZE];
+
+    // Abre o arquivo para leitura
+    if ((filefd = open(filename, O_RDONLY)) == -1) {
+        perror("open");
+        exit(1);
+    }
+
+    // Lê o conteúdo do arquivo e envia via UDP
+    while ((numbytes = read(filefd, filebuf, MAXDATASIZE)) > 0) {
+        if (sendto(sockfd, filebuf, numbytes, 0, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) == -1) {
+            perror("sendto");
+            exit(1);
+        }
+    }
+
+    // Fecha o arquivo
+    close(filefd);
+}
+
+void download_song(int socketTCP, int socketUDP, struct sockaddr_in *addr) {
+    int id;
+    char buffer[MAXDATASIZE], filename[MAXDATASIZE];
+
+    // Solicitar id da música ao client
+    send_msg(socketTCP, "Informe o id da música: \n");
+    receive_msg(socketTCP, buffer);
+    sscanf(buffer, "%d", &id);
+    // Constrói o caminho do arquivo .mp3
+    sprintf(filename, "data/%s.mp3", song_id);
+
+    send_file_udp(socketUDP, addr, filename);
+
+}
+
 void commands(int socket)
 {
     // Mostrar lista de comandos possíveis para o client
@@ -661,44 +700,48 @@ void commands(int socket)
 }
 
 // Menu que lida com as opções do client
-void menu(int socket)
+void menu(int socketTCP, int socketUDP, struct sockaddr_in *addr)
 {
     char message[MAXDATASIZE];
 
-    commands(socket);
+    commands(socketTCP);
     while(1)
     {
         printf("aguardando novas mensagens...\n");
-        receive_msg(socket, message);
+        receive_msg(socketTCP, message);
         switch (message[0])
         {
         case '1':
             printf("Cadastrar nova música\n");
-            add_song(socket);
+            add_song(socketTCP);
             break;
         case '2':
             printf("Deletar uma música\n");
-            remove_song(socket);
+            remove_song(socketTCP);
             break;
         case '3':
             printf("Listar todas as músicas (identificador, título e intérprete) lançadas em um determinado ano\n");
-            song_by_year(socket);
+            song_by_year(socketTCP);
             break;
         case '4':
             printf("Listar todas as músicas (identificador, título e intérprete) em um dado idioma lançadas num certo ano\n");
-            song_by_language(socket);
+            song_by_language(socketTCP);
             break;
         case '5':
             printf("Listar todas as músicas (identificador, título e intérprete) de um certo tipo\n");
-            song_by_type(socket);
+            song_by_type(socketTCP);
             break;
         case '6':
             printf("Listar todas as informações de uma música dado o seu identificador\n");
-            song_details(socket);
+            song_details(socketTCP);
             break;
         case '7':
             printf("Listar todas as informações de todas as músicas\n");
-            list_all_songs(socket);
+            list_all_songs(socketTCP);
+            break;
+        case '8':
+            printf("Fazer download da música de uma música dado o seu identificador\n");
+            download_song(socketTCP, socketUDP, addr);
             break;
         case 'c':
             commands(socket);
@@ -714,83 +757,60 @@ void menu(int socket)
     return;
 }
 
-int main(void)
-{
-    int sockfd, new_fd, st;
-    struct addrinfo hints, *servinfo, *p;
-    struct sockaddr_storage their_addr;
-    socklen_t sin_size;
-    int yes=1;
-    char s[INET6_ADDRSTRLEN];
+int main(void) {
+    int listenfd, connfd, udpfd, nready, maxfdp1;
+    char mesg[MAXLINE];
+    pid_t childpid;
+    fd_set rset;
+    ssize_t n;
+    socklen_t len;
+    const int on = 1;
+    struct sockaddr_in cliaddr, servaddr;
+    void sig_chld(int);
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+    /* create listening TCP socket */
+    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(SERV_PORT);
 
-    if ((st = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(st));
-        return 1;
-    }
+    setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+    bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+    listen(listenfd, LISTENQ);
 
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
-            perror("server: socket");
-            continue;
+    /* create UDP socket */
+    udpfd = socket(AF_INET, SOCK_DGRAM, 0);
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(SERV_PORT);
+    bind(udpfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+
+    FD_ZERO(&rset);
+    maxfdp1 = listenfd > udpfd ? listenfd + 1 : udpfd + 1;
+
+    for (;;) {
+        FD_SET(listenfd, &rset);
+        FD_SET(udpfd, &rset);
+
+        if ((nready = select(maxfdp1, &rset, NULL, NULL, NULL)) < 0) {
+            if (errno == EINTR)
+                continue;
+            else
+                perror("select error");
         }
 
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
-                sizeof(int)) == -1) {
-            perror("setsockopt");
-            exit(1);
+        if (FD_ISSET(listenfd, &rset)) {
+            len = sizeof(cliaddr);
+            connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &len);
+            if ((childpid = fork()) == 0) { /*child process */
+                close(listenfd); /* close listening socket */
+                menu(connfd, udpfd, &cliaddr); /* process the request */
+                exit(0);
+            }
+            close(connfd); /* parent closes connected socket */
         }
-
-        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(sockfd);
-            perror("server: bind");
-            continue;
-        }
-
-        break;
     }
-
-    freeaddrinfo(servinfo);
-
-    if (p == NULL)  {
-        fprintf(stderr, "server: failed to bind\n");
-        exit(1);
-    }
-
-    if (listen(sockfd, BACKLOG) == -1) {
-        perror("listen");
-        exit(1);
-    }
-
-    printf("server: waiting for connections...\n");
-
-    while(1) {
-        sin_size = sizeof their_addr;
-        new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
-        if (new_fd == -1) {
-            perror("accept");
-            continue;
-        }
-
-        inet_ntop(their_addr.ss_family,
-            get_in_addr((struct sockaddr *)&their_addr),
-            s, sizeof s);
-        printf("server: got connection from %s\n", s);
-
-        if (!fork()) {
-            close(sockfd);
-            menu(new_fd);
-            close(new_fd);
-            exit(0);
-        }
-        
-        close(new_fd);
-    }
-
     return 0;
 }
