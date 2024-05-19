@@ -7,19 +7,38 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <limits.h>
 
 #include <arpa/inet.h>
 
 #define PORT "3490"
 
-#define MAXDATASIZE 10000
+#define UDP_PORT "4950"
 
-#define FILENAME "received_song.mp3" // Nome do arquivo a ser salvo
+#define FILENAME "received_song.mp3"
 
+#define MAXMSGSIZE 10000
+
+#define MAXDATASIZE 1000000
+
+// Função para salvar o conteúdo do arquivo .mp3 recebido via UDP
+void save_song(const char *filename, const char *content, int size) {
+    FILE *fp = fopen(filename, "ab"); // Abre o arquivo para escrita binária
+    if (fp == NULL) {
+        perror("fopen");
+        exit(1);
+    }
+    if (fwrite(content, 1, size, fp) != size) { // Escreve o conteúdo no arquivo
+        perror("fwrite");
+        exit(1);
+    }
+    fclose(fp); // Fecha o arquivo
+    printf("Música salva com sucesso: %s\n", filename);
+}
 
 // função de recebimento de mensagem
 void receive_msg(int socket, char *msg){
-    int status = recv(socket, msg, MAXDATASIZE - 1, 0);
+    int status = recv(socket, msg, MAXMSGSIZE - 1, 0);
     if (status == -1){
         perror("Error receiving message");
         return;
@@ -31,7 +50,7 @@ void receive_msg(int socket, char *msg){
 
 // função de envio de mensagem
 void send_msg(int socket, char *msg){
-    if (strlen(msg) > MAXDATASIZE - 1){
+    if (strlen(msg) > MAXMSGSIZE - 1){
         perror("Message not supported: length is bigger than the maximum allowed");
         return;
     }
@@ -46,23 +65,7 @@ void send_msg(int socket, char *msg){
 // função de requisição para o servidor
 void send_to_server(int socket)
 {
-    char msg[MAXDATASIZE];
     
-    receive_msg(socket, msg);
-
-    while (1)
-    {
-        if (strcmp(msg, "Serviço encerrado\n") == 0){
-            exit(1);
-        }
-        printf("Aguardando Input...\n");
-        scanf(" %[^\n]", msg);
-        if(!strlen(msg)){
-            exit(1);
-        }
-        send_msg(socket, msg);
-        receive_msg(socket, msg);
-    }
     return;
 }
 
@@ -76,54 +79,39 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-// Função para salvar o conteúdo do arquivo .mp3 recebido via UDP
-void save_song(const char *filename, const char *content, int size) {
-    FILE *fp = fopen(filename, "wb"); // Abre o arquivo para escrita binária
-    if (fp == NULL) {
-        perror("fopen");
-        exit(1);
-    }
-    if (fwrite(content, 1, size, fp) != size) { // Escreve o conteúdo no arquivo
-        perror("fwrite");
-        exit(1);
-    }
-    fclose(fp); // Fecha o arquivo
-    printf("Música salva com sucesso: %s\n", filename);
-}
-
-int main(int argc, char *argv[]) {
-    int tcp_sockfd, udp_sockfd, numbytes, rv, maxfdp1;
-    char buf[MAXDATASIZE], udp_buf[MAXDATASIZE];
+int main(int argc, char *argv[])
+{
+    int sockfd, udp_sockfd, numbytes;  
+    char buf[MAXMSGSIZE];
     struct addrinfo hints, *servinfo, *p;
-    fd_set master, read_fds;
+    int rv;
     char s[INET6_ADDRSTRLEN];
+    struct sockaddr_in udp_serv_addr;
+
 
     if (argc != 2) {
-        fprintf(stderr, "usage: client hostname\n");
+        fprintf(stderr,"usage: client hostname\n");
         exit(1);
     }
-
-    FD_ZERO(&master);
-    FD_ZERO(&read_fds);
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM; // TCP
+    hints.ai_socktype = SOCK_STREAM;
 
     if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
-
-    // Criação do socket TCP
-    for (p = servinfo; p != NULL; p = p->ai_next) {
-        if ((tcp_sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+ 
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
             perror("client: socket");
             continue;
         }
 
-        if (connect(tcp_sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(tcp_sockfd);
+        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
             perror("client: connect");
             continue;
         }
@@ -136,61 +124,68 @@ int main(int argc, char *argv[]) {
         return 2;
     }
 
-    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
+    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
+            s, sizeof s);
     printf("client: connecting to %s\n", s);
 
-    freeaddrinfo(servinfo); // Tudo feito com essa estrutura
+    freeaddrinfo(servinfo);
 
-    // Criação do socket UDP
-    struct sockaddr_in udp_servaddr;
-    bzero(&udp_servaddr, sizeof(udp_servaddr));
-    udp_servaddr.sin_family = AF_INET;
-    udp_servaddr.sin_port = htons(SERV_PORT);
-    inet_pton(AF_INET, argv[1], &udp_servaddr.sin_addr);
+    char msg[MAXMSGSIZE];
+    
+    receive_msg(sockfd, msg);
 
-    if ((udp_sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        perror("socket");
+    while (strcmp(msg, "Fazendo download da música...\n") != 0)
+    {
+        if (strcmp(msg, "Serviço encerrado\n") == 0){
+            exit(1);
+        }
+        printf("Aguardando Input...\n");
+        scanf(" %[^\n]", msg);
+        if(!strlen(msg)){
+            exit(1);
+        }
+        send_msg(sockfd, msg);
+        receive_msg(sockfd, msg);
+    }
+
+    close(sockfd);
+
+    // Criar o socket UDP
+    udp_sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (udp_sockfd < 0) {
+        perror("Erro ao abrir o socket UDP");
         exit(1);
     }
 
-    FD_SET(tcp_sockfd, &master);
-    FD_SET(udp_sockfd, &master);
-    maxfdp1 = tcp_sockfd > udp_sockfd ? tcp_sockfd + 1 : udp_sockfd + 1;
+    // Configurar o endereço do servidor UDP
+    bzero((char *) &udp_serv_addr, sizeof(udp_serv_addr));
+    udp_serv_addr.sin_family = AF_INET;
+    udp_serv_addr.sin_addr.s_addr = INADDR_ANY;
+    udp_serv_addr.sin_port = htons(atoi(UDP_PORT));
 
-    while (1) {
-        read_fds = master;
-        if (select(maxfdp1, &read_fds, NULL, NULL, NULL) == -1) {
-            perror("select");
-            exit(1);
-        }
-
-        if (FD_ISSET(tcp_sockfd, &read_fds)) {
-            // Manipulação de dados TCP
-            send_to_server(tcp_sockfd);
-            if ((numbytes = recv(tcp_sockfd, buf, MAXDATASIZE - 1, 0)) == -1) {
-                perror("recv");
-                exit(1);
-            }
-            buf[numbytes] = '\0';
-            printf("client: received '%s'\n", buf);
-            close(tcp_sockfd);
-            break;
-        }
-
-        if (FD_ISSET(udp_sockfd, &read_fds)) {
-            // Recebimento do arquivo .mp3 via UDP
-            int numbytes;
-            int total_bytes = 0;
-            while ((numbytes = recvfrom(udp_sockfd, udp_buf, MAXDATASIZE - 1, 0, NULL, NULL)) > 0) {
-                // Salva o conteúdo do arquivo .mp3
-                save_song(FILENAME, udp_buf, numbytes);
-                total_bytes += numbytes;
-            }
-            printf("Total de bytes recebidos: %d\n", total_bytes);
-            close(udp_sockfd);
-            break;
-        }
+    // Enviar uma mensagem para o servidor UDP
+    char *udp_message = "Mensagem UDP do cliente";
+    char udp_buf[MAXMSGSIZE];
+    int udp_len = sizeof(udp_serv_addr);
+    if (sendto(udp_sockfd, udp_message, strlen(udp_message), 0, (struct sockaddr *) &udp_serv_addr, udp_len) < 0) {
+        perror("Erro ao enviar mensagem UDP");
+        close(udp_sockfd);
+        exit(1);
     }
+
+    printf("Mensagem UDP enviada\n");
+
+    int total_bytes = 0;
+    while ((numbytes = recvfrom(udp_sockfd, udp_buf, MAXMSGSIZE, 0, NULL, NULL)) > 0) {
+        // Salva o conteúdo do arquivo .mp3
+        printf("%zd\n", numbytes);
+        save_song(FILENAME, udp_buf, numbytes);
+        total_bytes += numbytes;
+    }
+    printf("Total de bytes recebidos: %d\n", total_bytes);
+
+    // Fechar o socket UDP
+    close(udp_sockfd);
 
     return 0;
 }
