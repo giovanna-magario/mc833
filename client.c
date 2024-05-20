@@ -11,7 +11,7 @@
 
 #include <arpa/inet.h>
 
-#define PORT "3490"
+#define TCP_PORT "3490"
 
 #define UDP_PORT "4950"
 
@@ -33,7 +33,7 @@ void save_song(const char *filename, const char *content, int size) {
         exit(1);
     }
     fclose(fp); // Fecha o arquivo
-    printf("Música salva com sucesso: %s\n", filename);
+    return;
 }
 
 // função de recebimento de mensagem
@@ -62,13 +62,6 @@ void send_msg(int socket, char *msg){
     return;
 }
 
-// função de requisição para o servidor
-void send_to_server(int socket)
-{
-    
-    return;
-}
-
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -79,15 +72,12 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int main(int argc, char *argv[])
+int createTCPSocket(int argc, char *argv[])
 {
-    int sockfd, udp_sockfd, numbytes;  
-    char buf[MAXMSGSIZE];
+    int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
-    struct sockaddr_in udp_serv_addr;
-
 
     if (argc != 2) {
         fprintf(stderr,"usage: client hostname\n");
@@ -98,11 +88,11 @@ int main(int argc, char *argv[])
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(argv[1], TCP_PORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
- 
+
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
@@ -129,26 +119,13 @@ int main(int argc, char *argv[])
     printf("client: connecting to %s\n", s);
 
     freeaddrinfo(servinfo);
+    return sockfd;
+}
 
-    char msg[MAXMSGSIZE];
-    
-    receive_msg(sockfd, msg);
-
-    while (strcmp(msg, "Fazendo download da música...\n") != 0)
-    {
-        if (strcmp(msg, "Serviço encerrado\n") == 0){
-            exit(1);
-        }
-        printf("Aguardando Input...\n");
-        scanf(" %[^\n]", msg);
-        if(!strlen(msg)){
-            exit(1);
-        }
-        send_msg(sockfd, msg);
-        receive_msg(sockfd, msg);
-    }
-
-    close(sockfd);
+void handleUDPRequests()
+{
+    int udp_sockfd, numbytes;  
+    struct sockaddr_in udp_serv_addr;
 
     // Criar o socket UDP
     udp_sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -164,9 +141,11 @@ int main(int argc, char *argv[])
     udp_serv_addr.sin_port = htons(atoi(UDP_PORT));
 
     // Enviar uma mensagem para o servidor UDP
-    char *udp_message = "Mensagem UDP do cliente";
-    char udp_buf[MAXMSGSIZE];
+    char udp_message[MAXDATASIZE];
     int udp_len = sizeof(udp_serv_addr);
+    printf("Informe o ID da música:\n");
+    scanf(" %[^\n]", udp_message);
+
     if (sendto(udp_sockfd, udp_message, strlen(udp_message), 0, (struct sockaddr *) &udp_serv_addr, udp_len) < 0) {
         perror("Erro ao enviar mensagem UDP");
         close(udp_sockfd);
@@ -175,17 +154,59 @@ int main(int argc, char *argv[])
 
     printf("Mensagem UDP enviada\n");
 
+    char udp_buf[MAXMSGSIZE], filename[MAXMSGSIZE];
+    int id;
     int total_bytes = 0;
     while ((numbytes = recvfrom(udp_sockfd, udp_buf, MAXMSGSIZE, 0, NULL, NULL)) > 0) {
         // Salva o conteúdo do arquivo .mp3
-        printf("%zd\n", numbytes);
-        save_song(FILENAME, udp_buf, numbytes);
+        sscanf(udp_message, "%d", &id);
+        // Constrói o caminho do arquivo .mp3
+        sprintf(filename, "clientData/%d.mp3", id);
+        save_song(filename, udp_buf, numbytes);
         total_bytes += numbytes;
     }
+    printf("Música salva com sucesso: %s\n", filename);
     printf("Total de bytes recebidos: %d\n", total_bytes);
 
     // Fechar o socket UDP
     close(udp_sockfd);
+}
 
+// função de requisição para o servidor
+void send_to_server(int sockfd, int argc, char *argv[])
+{
+    char msg[MAXMSGSIZE];
+
+    while(1){
+        while (strcmp(msg, "8") != 0)
+        {
+            receive_msg(sockfd, msg);
+            if (strcmp(msg, "Serviço encerrado\n") == 0){
+                exit(1);
+            }
+            printf("Aguardando Input...\n");
+            scanf(" %[^\n]", msg);
+            if(!strlen(msg)){
+                exit(1);
+            }
+            send_msg(sockfd, msg);
+        }
+
+        close(sockfd);
+
+        handleUDPRequests();
+
+        int sockfd = createTCPSocket(argc, argv);
+
+        strcpy(msg, "");
+    }
+}
+
+int main(int argc, char *argv[])
+{ 
+    int sockfd = createTCPSocket(argc, argv);
+
+    send_to_server(sockfd, argc, argv);
+    
     return 0;
 }

@@ -660,9 +660,19 @@ void list_all_songs(int socket)
 
 
 // Função para enviar um arquivo via UDP
-void send_file_udp(int sockfd, struct sockaddr_in *addr, const char *filename) {
-    int filefd, numbytes;
-    char filebuf[MAXDATASIZE];
+void send_file_udp(int udp_sockfd, struct sockaddr_in cliaddr, socklen_t cliaddrlen) {
+    int filefd, numbytes, id;
+    char filebuf[MAXDATASIZE], filename[MAXDATASIZE];
+
+    printf("Esperando por cliente...\n");
+
+    // Recebendo a primeira mensagem do cliente para iniciar a comunicação
+    recvfrom(udp_sockfd, filebuf, MAXDATASIZE, 0, (struct sockaddr *)&cliaddr, &cliaddrlen);
+    printf("Cliente conectado, enviando música...\n");
+
+    sscanf(filebuf, "%d", &id);
+    // Constrói o caminho do arquivo .mp3
+    sprintf(filename, "data/%d.mp3", id);
 
     // Abre o arquivo para leitura
     if ((filefd = open(filename, O_RDONLY)) == -1) {
@@ -672,55 +682,36 @@ void send_file_udp(int sockfd, struct sockaddr_in *addr, const char *filename) {
 
     printf("Arquivo aberto\n");
 
-    printf("Esperando por cliente...\n");
-    socklen_t addrlen = sizeof(addr);
-
-    // Recebendo a primeira mensagem do cliente para iniciar a comunicação
-    recvfrom(sockfd, filebuf, MAXDATASIZE, MSG_WAITALL, (struct sockaddr *)addr, &addrlen);
-    printf("Cliente conectado, enviando música...\n");
-
     // Lê o conteúdo do arquivo e envia via UDP
     while ((numbytes = read(filefd, filebuf, MAXDATASIZE)) > 0) {
-        if (sendto(sockfd, filebuf, numbytes, 0, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) == -1) {
+        if (sendto(udp_sockfd, filebuf, MAXDATASIZE, 0, (struct sockaddr *)&cliaddr, cliaddrlen) == -1) {
             perror("sendto");
             exit(1);
         }
-        printf("enviando");
+        printf("Enviando\n");
     }
 
     printf("Musica enviada com sucesso \n");
 
     // Fecha o arquivo
     close(filefd);
-}
 
-void download_song(int socketTCP, int socketUDP, struct sockaddr_in *addr) {
-    int id;
-    char buffer[MAXDATASIZE];
-
-    // Solicitar id da música ao client
-    send_msg(socketTCP, "Informe o id da música: \n");
-    receive_msg(socketTCP, buffer);
-    sscanf(buffer, "%d", &id);
-    // Constrói o caminho do arquivo .mp3
-    sprintf(filename, "data/%d.mp3", id);
-
-    printf(filename);
-    send_msg(socketTCP, "Fazendo download da música...\n");
-
-    exit(0);
-
+    // Envio de mensagem nula para encerrar o recebimento do arquivo no cliente
+    if (sendto(udp_sockfd, NULL, 0, 0, (struct sockaddr *)&cliaddr, cliaddrlen) == -1) {
+        perror("sendto");
+        exit(1);
+    }
 }
 
 void commands(int socket)
 {
     // Mostrar lista de comandos possíveis para o client
-    send_msg(socket, "Opções de comandos para músicas:\n1: cadastrar nova música\n2: remover uma música\n3: listar músicas por ano\n4: listar músicas por idioma e ano\n5: listar músicas por tipo\n6: detalhes da música\n7: detalhes de todas as músicas\nc: ver lista de comandos\ns: sair\n");
+    send_msg(socket, "Opções de comandos para músicas:\n1: cadastrar nova música\n2: remover uma música\n3: listar músicas por ano\n4: listar músicas por idioma e ano\n5: listar músicas por tipo\n6: detalhes da música\n7: detalhes de todas as músicas\n8: download de música\nc: ver lista de comandos\ns: sair\n");
     return;
 }
 
 // Menu que lida com as opções do client
-void menu(int socketTCP, int socketUDP, struct sockaddr_in *addr)
+void menu(int socketTCP)
 {
     char message[MAXDATASIZE];
 
@@ -759,10 +750,6 @@ void menu(int socketTCP, int socketUDP, struct sockaddr_in *addr)
             printf("Listar todas as informações de todas as músicas\n");
             list_all_songs(socketTCP);
             break;
-        case '8':
-            printf("Fazer download da música de uma música dado o seu identificador\n");
-            download_song(socketTCP, socketUDP, addr);
-            break;
         case 'c':
             commands(socketTCP);
             break;
@@ -783,7 +770,6 @@ int main(void) {
     struct sockaddr_in tcp_servaddr, udp_servaddr, cliaddr;
     socklen_t cliaddrlen = sizeof(cliaddr);
     fd_set readfds;
-    char song_id[MAXDATASIZE];
 
     // Criação do socket TCP
     if ((tcp_sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -849,53 +835,14 @@ int main(void) {
             }
             if (!fork()) { /*child process */
                 close(tcp_sockfd); /* close listening socket */
-                menu(connfd, udp_sockfd, &cliaddr); /* process the request */
+                menu(connfd); /* process the request */
                 close(connfd);
                 exit(0);
             }
             close(connfd); /* parent closes connected socket */
         }
         if (FD_ISSET(udp_sockfd, &readfds)){
-            int filefd, numbytes;
-            char filebuf[MAXDATASIZE];
-            printf("Olá \n");
-
-            // Abre o arquivo para leitura
-            if ((filefd = open("data/1.mp3", O_RDONLY)) == -1) {
-                perror("open");
-                exit(1);
-            }
-
-            printf("Arquivo aberto\n");
-
-            printf("Esperando por cliente...\n");
-
-            // Recebendo a primeira mensagem do cliente para iniciar a comunicação
-            recvfrom(udp_sockfd, filebuf, MAXDATASIZE, MSG_WAITALL, (struct sockaddr *)&cliaddr, &cliaddrlen);
-            printf("Cliente conectado, enviando música...\n");
-
-            // Lê o conteúdo do arquivo e envia via UDP
-            while ((numbytes = read(filefd, filebuf, MAXDATASIZE)) > 0) {
-                if (sendto(udp_sockfd, filebuf, MAXDATASIZE, 0, (struct sockaddr *)&cliaddr, cliaddrlen) == -1) {
-                    perror("sendto");
-                    exit(1);
-                }
-                printf("enviando\n");
-                printf("Tamanho de int: %zu bytes\n", sizeof(filebuf));
-                printf(filebuf);
-            }
-
-            printf("Musica enviada com sucesso \n");
-
-            // Fecha o arquivo
-            close(filefd);
-
-            if (sendto(udp_sockfd, NULL, 0, 0, (struct sockaddr *)&cliaddr, cliaddrlen) == -1) {
-                perror("sendto");
-                exit(1);
-            }
-
-            printf("Acabou");
+            send_file_udp(udp_sockfd, cliaddr, cliaddrlen);
         }
     }
     close(tcp_sockfd);
