@@ -15,11 +15,7 @@
 
 #define UDP_PORT "4950"
 
-#define FILENAME "received_song.mp3"
-
-#define MAXMSGSIZE 10000
-
-#define MAXDATASIZE 1000000
+#define MAXDATASIZE 10000
 
 // Função para salvar o conteúdo do arquivo .mp3 recebido via UDP
 void save_song(const char *filename, const char *content, int size) {
@@ -38,7 +34,7 @@ void save_song(const char *filename, const char *content, int size) {
 
 // função de recebimento de mensagem
 void receive_msg(int socket, char *msg){
-    int status = recv(socket, msg, MAXMSGSIZE - 1, 0);
+    int status = recv(socket, msg, MAXDATASIZE - 1, 0);
     if (status == -1){
         perror("Error receiving message");
         return;
@@ -50,7 +46,7 @@ void receive_msg(int socket, char *msg){
 
 // função de envio de mensagem
 void send_msg(int socket, char *msg){
-    if (strlen(msg) > MAXMSGSIZE - 1){
+    if (strlen(msg) > MAXDATASIZE - 1){
         perror("Message not supported: length is bigger than the maximum allowed");
         return;
     }
@@ -72,6 +68,7 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+// cria os sockets TCPs
 int createTCPSocket(int argc, char *argv[])
 {
     int sockfd;
@@ -122,6 +119,7 @@ int createTCPSocket(int argc, char *argv[])
     return sockfd;
 }
 
+// lida com as requisições UDP
 void handleUDPRequests()
 {
     int udp_sockfd, numbytes;  
@@ -154,10 +152,10 @@ void handleUDPRequests()
 
     printf("Mensagem UDP enviada\n");
 
-    char udp_buf[MAXMSGSIZE], filename[MAXMSGSIZE];
+    char udp_buf[MAXDATASIZE], filename[MAXDATASIZE];
     int id;
     int total_bytes = 0;
-    while ((numbytes = recvfrom(udp_sockfd, udp_buf, MAXMSGSIZE, 0, NULL, NULL)) > 0) {
+    while ((numbytes = recvfrom(udp_sockfd, udp_buf, MAXDATASIZE, 0, NULL, NULL)) > 0) {
         // Salva o conteúdo do arquivo .mp3
         sscanf(udp_message, "%d", &id);
         // Constrói o caminho do arquivo .mp3
@@ -175,7 +173,7 @@ void handleUDPRequests()
 // função de requisição para o servidor
 void send_to_server(int sockfd, int argc, char *argv[])
 {
-    char msg[MAXMSGSIZE];
+    char msg[MAXDATASIZE];
 
     while(1){
         while (strcmp(msg, "8") != 0)
@@ -198,6 +196,10 @@ void send_to_server(int sockfd, int argc, char *argv[])
 
         int sockfd = createTCPSocket(argc, argv);
 
+        if (!sockfd){
+            exit(1);
+        }
+
         strcpy(msg, "");
     }
 }
@@ -206,7 +208,9 @@ int main(int argc, char *argv[])
 { 
     int sockfd = createTCPSocket(argc, argv);
 
-    send_to_server(sockfd, argc, argv);
+    if (sockfd){
+        send_to_server(sockfd, argc, argv);
+    }
     
     return 0;
 }

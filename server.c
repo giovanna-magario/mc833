@@ -21,17 +21,6 @@
 
 #define MAXDATASIZE 10000
 
-char filename[MAXDATASIZE];
-
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
 // função de recebimento de mensagem
 void receive_msg(int socket, char *msg){
     int status = recv(socket, msg, MAXDATASIZE - 1, 0);
@@ -122,6 +111,7 @@ void generateSongsStr(cJSON *filteredSongsArray, char* allSongs) {
     return;
 }
 
+// cadastra nova música
 void add_song(int socket)
 {
     char buffer[MAXDATASIZE];
@@ -234,6 +224,7 @@ void add_song(int socket)
     return;
 }
 
+// remove a música através do identificador
 void remove_song(int socket)
 {
     char buffer[MAXDATASIZE];
@@ -693,14 +684,16 @@ void send_file_udp(int udp_sockfd, struct sockaddr_in cliaddr, socklen_t cliaddr
 
     printf("Musica enviada com sucesso \n");
 
-    // Fecha o arquivo
-    close(filefd);
-
-    // Envio de mensagem nula para encerrar o recebimento do arquivo no cliente
+     // Envio de mensagem nula para encerrar o recebimento do arquivo no cliente
     if (sendto(udp_sockfd, NULL, 0, 0, (struct sockaddr *)&cliaddr, cliaddrlen) == -1) {
         perror("sendto");
         exit(1);
     }
+
+    // Fecha o arquivo
+    close(filefd);
+
+    return;
 }
 
 void commands(int socket)
