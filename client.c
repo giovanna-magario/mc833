@@ -120,7 +120,7 @@ int createTCPSocket(int argc, char *argv[])
 }
 
 // lida com as requisições UDP
-void handleUDPRequests()
+void handleUDPRequests(char *argv[])
 {
     int udp_sockfd, numbytes;  
     struct sockaddr_in udp_serv_addr;
@@ -135,8 +135,8 @@ void handleUDPRequests()
     // Configurar o endereço do servidor UDP
     bzero((char *) &udp_serv_addr, sizeof(udp_serv_addr));
     udp_serv_addr.sin_family = AF_INET;
-    udp_serv_addr.sin_addr.s_addr = INADDR_ANY;
     udp_serv_addr.sin_port = htons(atoi(UDP_PORT));
+    inet_pton(AF_INET, argv[1], &udp_serv_addr.sin_addr);
 
     // Enviar uma mensagem para o servidor UDP
     char udp_message[MAXDATASIZE];
@@ -192,7 +192,7 @@ void send_to_server(int sockfd, int argc, char *argv[])
 
         close(sockfd);
 
-        handleUDPRequests();
+        handleUDPRequests(argv);
 
         int sockfd = createTCPSocket(argc, argv);
 
